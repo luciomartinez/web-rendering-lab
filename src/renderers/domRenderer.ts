@@ -1,0 +1,145 @@
+import type { BenchmarkRenderer, PointData, RenderSize, SceneState, ScreenPoint } from "../types";
+import { nearestPoint } from "../viewport";
+
+const CHUNK_SIZE = 5_000;
+
+export class DomRenderer implements BenchmarkRenderer {
+  readonly kind = "dom" as const;
+
+  private data: PointData[] = [];
+  private root: HTMLDivElement | null = null;
+  private layer: HTMLDivElement | null = null;
+  private elements: HTMLDivElement[] = [];
+  private lastHoveredId: number | null = null;
+  private lastSelectedIds = new Set<number>();
+  private disposed = false;
+
+  async init(container: HTMLElement, data: PointData[], state: SceneState): Promise<void> {
+    this.disposed = false;
+    this.data = data;
+    this.root = document.createElement("div");
+    this.root.className = "dom-scene";
+    this.layer = document.createElement("div");
+    this.layer.className = "dom-scene__layer";
+    this.root.append(this.layer);
+    container.append(this.root);
+
+    await this.createElements(data);
+    this.render(state);
+  }
+
+  render(state: SceneState): void {
+    if (!this.layer || this.disposed) {
+      return;
+    }
+
+    const { offsetX, offsetY, scale } = state.viewport;
+    this.layer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`;
+    this.syncHover(state.hoveredId);
+    this.syncSelection(state.selectedIds);
+  }
+
+  resize(_size: RenderSize): void {
+    this.renderSizeAttributes();
+  }
+
+  hitTest(point: ScreenPoint): PointData | null {
+    const appState = window.__WEB_RENDERING_LAB_STATE__;
+    if (!appState) {
+      return null;
+    }
+
+    return nearestPoint(this.data, appState.viewport, point);
+  }
+
+  destroy(): void {
+    this.disposed = true;
+    this.root?.remove();
+    this.root = null;
+    this.layer = null;
+    this.elements = [];
+    this.lastHoveredId = null;
+    this.lastSelectedIds.clear();
+  }
+
+  private async createElements(data: PointData[]): Promise<void> {
+    if (!this.layer) {
+      return;
+    }
+
+    this.elements = new Array(data.length);
+
+    for (let start = 0; start < data.length; start += CHUNK_SIZE) {
+      if (this.disposed || !this.layer) {
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      const end = Math.min(data.length, start + CHUNK_SIZE);
+
+      for (let index = start; index < end; index += 1) {
+        const point = data[index];
+        const dot = document.createElement("div");
+        dot.className = "scatter-dot";
+        dot.style.left = `${point.x}px`;
+        dot.style.top = `${point.y}px`;
+        dot.style.width = `${point.radiusPx * 2}px`;
+        dot.style.height = `${point.radiusPx * 2}px`;
+        dot.style.backgroundColor = point.color;
+        dot.dataset.pointId = String(point.id);
+        this.elements[index] = dot;
+        fragment.append(dot);
+      }
+
+      this.layer.append(fragment);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+  }
+
+  private syncHover(hoveredId: number | null): void {
+    if (hoveredId === this.lastHoveredId) {
+      return;
+    }
+
+    if (this.lastHoveredId !== null) {
+      this.elements[this.lastHoveredId]?.classList.remove("is-hovered");
+    }
+
+    if (hoveredId !== null) {
+      this.elements[hoveredId]?.classList.add("is-hovered");
+    }
+
+    this.lastHoveredId = hoveredId;
+  }
+
+  private syncSelection(selectedIds: Set<number>): void {
+    for (const previousId of this.lastSelectedIds) {
+      if (!selectedIds.has(previousId)) {
+        this.elements[previousId]?.classList.remove("is-selected");
+        this.lastSelectedIds.delete(previousId);
+      }
+    }
+
+    for (const selectedId of selectedIds) {
+      if (!this.lastSelectedIds.has(selectedId)) {
+        this.elements[selectedId]?.classList.add("is-selected");
+        this.lastSelectedIds.add(selectedId);
+      }
+    }
+  }
+
+  private renderSizeAttributes(): void {
+    if (!this.root) {
+      return;
+    }
+
+    this.root.style.width = "100%";
+    this.root.style.height = "100%";
+  }
+}
+
+declare global {
+  interface Window {
+    __WEB_RENDERING_LAB_STATE__?: SceneState;
+  }
+}
