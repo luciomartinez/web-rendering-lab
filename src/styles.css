@@ -64,10 +64,19 @@ h1 {
   letter-spacing: 0;
 }
 
-.renderer-tabs {
+.topbar-actions {
   display: flex;
   align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.renderer-tabs {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
   gap: 6px;
+  min-width: 0;
   padding: 4px;
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 8px;
@@ -94,6 +103,29 @@ h1 {
 .renderer-tab.is-active {
   color: #031c1a;
   background: #5eead4;
+}
+
+.source-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.72);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.source-link:hover {
+  border-color: rgba(94, 234, 212, 0.55);
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.78);
 }
 
 .control-strip {
@@ -251,6 +283,10 @@ h1 {
   .topbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    align-items: stretch;
   }
 
   .renderer-tabs,

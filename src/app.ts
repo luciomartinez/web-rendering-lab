@@ -93,18 +93,28 @@ export class RenderingLabApp {
             <p class="eyebrow">Benchmark lab</p>
             <h1>Web Rendering Lab</h1>
           </div>
-          <nav class="renderer-tabs" aria-label="Renderer demos">
-            ${RENDERER_KINDS.map(
-              (kind) => `
-                <a class="renderer-tab ${kind === activeKind ? "is-active" : ""}"
-                  href="${getRendererPath(kind)}"
-                  data-route="${kind}"
-                  aria-current="${kind === activeKind ? "page" : "false"}">
-                  ${ROUTE_LABELS[kind]}
-                </a>
-              `
-            ).join("")}
-          </nav>
+          <div class="topbar-actions">
+            <nav class="renderer-tabs" aria-label="Renderer demos">
+              ${RENDERER_KINDS.map(
+                (kind) => `
+                  <a class="renderer-tab ${kind === activeKind ? "is-active" : ""}"
+                    href="${getRendererPath(kind)}"
+                    data-route="${kind}"
+                    aria-current="${kind === activeKind ? "page" : "false"}">
+                    ${ROUTE_LABELS[kind]}
+                  </a>
+                `
+              ).join("")}
+            </nav>
+            <a
+              class="source-link"
+              href="https://github.com/luciomartinez/web-rendering-lab"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open source repository on GitHub">
+              GitHub
+            </a>
+          </div>
         </header>
 
         <section class="control-strip" aria-label="Benchmark controls">
