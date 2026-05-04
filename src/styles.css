@@ -222,7 +222,7 @@ h1 {
   position: absolute;
   border-radius: 999px;
   opacity: 0.78;
-  transform: translate3d(-50%, -50%, 0);
+  transform: translate3d(-50%, -50%, 0) scale(var(--dot-counter-scale, 1));
   box-shadow: 0 0 0 0 rgba(248, 250, 252, 0);
 }
 

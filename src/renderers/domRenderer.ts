@@ -29,6 +29,7 @@ export class DomRenderer implements BenchmarkRenderer {
 
     const { offsetX, offsetY, scale } = state.viewport;
     this.layer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`;
+    this.layer.style.setProperty("--dot-counter-scale", String(1 / scale));
   }
 
   resize(_size: RenderSize): void {
