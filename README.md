@@ -37,7 +37,6 @@ npm run dev
 Run checks:
 
 ```sh
-npm run typecheck
 npm run build
 npm test
 ```
