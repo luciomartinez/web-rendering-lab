@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ViewportState } from "../../src/types";
-import { screenToWorld, worldToScreen, zoomViewportAt } from "../../src/viewport";
+import { pinchViewport, screenToWorld, worldToScreen, zoomViewportAt } from "../../src/viewport";
 
 const viewport: ViewportState = {
   width: 800,
@@ -27,5 +27,14 @@ describe("viewport transforms", () => {
 
     expect(after.x).toBeCloseTo(before.x, 6);
     expect(after.y).toBeCloseTo(before.y, 6);
+  });
+
+  it("combines pinch zoom and center movement", () => {
+    const startCenter = { x: 320, y: 240 };
+    const currentCenter = { x: 350, y: 220 };
+    const pinched = pinchViewport(viewport, startCenter, currentCenter, 2);
+
+    expect(pinched.scale).toBeCloseTo(viewport.scale * 2, 6);
+    expect(screenToWorld(currentCenter, pinched)).toEqual(screenToWorld(startCenter, viewport));
   });
 });

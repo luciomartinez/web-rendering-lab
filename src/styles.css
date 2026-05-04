@@ -108,10 +108,12 @@ h1 {
 .field {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 8px;
   color: #9fb0c3;
   font-size: 0.86rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .field select {
@@ -125,6 +127,7 @@ h1 {
 }
 
 .command-button {
+  flex: 0 0 auto;
   height: 36px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 6px;
@@ -132,6 +135,7 @@ h1 {
   color: #dbeafe;
   background: rgba(30, 41, 59, 0.72);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .command-button:hover {
@@ -141,6 +145,7 @@ h1 {
 
 .metric {
   min-width: 92px;
+  flex: 0 0 auto;
   display: grid;
   gap: 2px;
   padding: 4px 10px;

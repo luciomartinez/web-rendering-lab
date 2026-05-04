@@ -4,13 +4,14 @@ import { CanvasRenderer } from "./renderers/canvasRenderer";
 import { DomRenderer } from "./renderers/domRenderer";
 import { WebGLRenderer } from "./renderers/webglRenderer";
 import { WebGPURenderer } from "./renderers/webgpuRenderer";
-import type { BenchmarkRenderer, PointData, RendererKind, SceneState, ScreenPoint } from "./types";
+import type { BenchmarkRenderer, PointData, RendererKind, SceneState, ScreenPoint, ViewportState } from "./types";
 import { RENDERER_KINDS } from "./types";
 import {
   createViewport,
   fitViewportToBounds,
   getDevicePixelRatio,
   panViewport,
+  pinchViewport,
   zoomViewportAt
 } from "./viewport";
 
@@ -41,12 +42,20 @@ export class RenderingLabApp {
   private fpsMeter = new FpsMeter();
   private resizeObserver: ResizeObserver | null = null;
   private mountToken = 0;
+  private activePointers = new Map<number, ScreenPoint>();
   private dragState:
     | {
         pointerId: number;
         start: ScreenPoint;
         previous: ScreenPoint;
         moved: boolean;
+      }
+    | null = null;
+  private pinchState:
+    | {
+        startCenter: ScreenPoint;
+        startDistance: number;
+        startViewport: ViewportState;
       }
     | null = null;
 
@@ -105,7 +114,7 @@ export class RenderingLabApp {
               ${this.renderPointCountOptions(activeKind)}
             </select>
           </label>
-          <button class="command-button" type="button" id="reset-view">Reset view</button>
+          <button class="command-button" type="button" id="reset-view" aria-label="Reset view">Reset</button>
           <div class="metric" aria-live="polite">
             <span>FPS</span>
             <strong id="fps" data-testid="fps">0</strong>
@@ -274,14 +283,23 @@ export class RenderingLabApp {
       return;
     }
 
+    event.preventDefault();
     const point = this.toStagePoint(event);
+    this.activePointers.set(event.pointerId, point);
+    this.stage.setPointerCapture(event.pointerId);
+
+    if (this.activePointers.size >= 2) {
+      this.dragState = null;
+      this.pinchState = this.createPinchState();
+      return;
+    }
+
     this.dragState = {
       pointerId: event.pointerId,
       start: point,
       previous: point,
       moved: false
     };
-    this.stage.setPointerCapture(event.pointerId);
   };
 
   private handlePointerMove = (event: PointerEvent): void => {
@@ -289,7 +307,33 @@ export class RenderingLabApp {
       return;
     }
 
+    if (!this.activePointers.has(event.pointerId)) {
+      return;
+    }
+
+    event.preventDefault();
     const point = this.toStagePoint(event);
+    this.activePointers.set(event.pointerId, point);
+
+    if (this.activePointers.size >= 2) {
+      const pinch = this.getPinchMetrics();
+
+      if (!pinch) {
+        return;
+      }
+
+      if (!this.pinchState) {
+        this.pinchState = this.createPinchState();
+      }
+
+      if (!this.pinchState || this.pinchState.startDistance <= 0) {
+        return;
+      }
+
+      const factor = pinch.distance / this.pinchState.startDistance;
+      this.state.viewport = pinchViewport(this.pinchState.startViewport, this.pinchState.startCenter, pinch.center, factor);
+      return;
+    }
 
     if (this.dragState?.pointerId === event.pointerId) {
       const dx = point.x - this.dragState.previous.x;
@@ -311,18 +355,31 @@ export class RenderingLabApp {
   };
 
   private handlePointerUp = (event: PointerEvent): void => {
-    if (!this.stage || this.dragState?.pointerId !== event.pointerId) {
+    if (!this.stage) {
       return;
     }
 
+    event.preventDefault();
+    this.activePointers.delete(event.pointerId);
     this.dragState = null;
-    this.stage.releasePointerCapture(event.pointerId);
+    this.pinchState = null;
+
+    if (this.stage.hasPointerCapture(event.pointerId)) {
+      this.stage.releasePointerCapture(event.pointerId);
+    }
+
+    this.reseedGestureFromActivePointers();
   };
 
   private handlePointerCancel = (event: PointerEvent): void => {
-    if (this.stage && this.dragState?.pointerId === event.pointerId) {
+    if (this.stage) {
+      this.activePointers.delete(event.pointerId);
+      if (this.stage.hasPointerCapture(event.pointerId)) {
+        this.stage.releasePointerCapture(event.pointerId);
+      }
       this.dragState = null;
-      this.stage.releasePointerCapture(event.pointerId);
+      this.pinchState = null;
+      this.reseedGestureFromActivePointers();
     }
   };
 
@@ -332,6 +389,69 @@ export class RenderingLabApp {
     const factor = Math.exp(-event.deltaY * 0.0012);
     this.state.viewport = zoomViewportAt(this.state.viewport, anchor, factor);
   };
+
+  private reseedGestureFromActivePointers(): void {
+    if (!this.stage) {
+      return;
+    }
+
+    if (this.activePointers.size >= 2) {
+      this.pinchState = this.createPinchState();
+      return;
+    }
+
+    const remainingPointer = this.activePointers.entries().next().value as [number, ScreenPoint] | undefined;
+
+    if (!remainingPointer) {
+      return;
+    }
+
+    const [pointerId, point] = remainingPointer;
+    this.dragState = {
+      pointerId,
+      start: point,
+      previous: point,
+      moved: false
+    };
+  }
+
+  private createPinchState():
+    | {
+        startCenter: ScreenPoint;
+        startDistance: number;
+        startViewport: ViewportState;
+      }
+    | null {
+    const pinch = this.getPinchMetrics();
+
+    if (!pinch) {
+      return null;
+    }
+
+    return {
+      startCenter: pinch.center,
+      startDistance: pinch.distance,
+      startViewport: { ...this.state.viewport }
+    };
+  }
+
+  private getPinchMetrics(): { center: ScreenPoint; distance: number } | null {
+    const points = Array.from(this.activePointers.values());
+
+    if (points.length < 2) {
+      return null;
+    }
+
+    const first = points[0];
+    const second = points[1];
+    return {
+      center: {
+        x: (first.x + second.x) / 2,
+        y: (first.y + second.y) / 2
+      },
+      distance: Math.hypot(second.x - first.x, second.y - first.y)
+    };
+  }
 
   private handlePopState = (): void => {
     this.switchRenderer(this.getRoute() ?? "dom");

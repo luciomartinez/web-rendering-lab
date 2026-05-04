@@ -70,6 +70,17 @@ export function zoomViewportAt(
   };
 }
 
+export function pinchViewport(
+  startViewport: ViewportState,
+  startCenter: ScreenPoint,
+  currentCenter: ScreenPoint,
+  factor: number
+): ViewportState {
+  const zoomed = zoomViewportAt(startViewport, startCenter, factor);
+
+  return panViewport(zoomed, currentCenter.x - startCenter.x, currentCenter.y - startCenter.y);
+}
+
 export function getVisibleWorldBounds(viewport: ViewportState, paddingPx = 24): WorldBounds {
   const topLeft = screenToWorld({ x: -paddingPx, y: -paddingPx }, viewport);
   const bottomRight = screenToWorld(
