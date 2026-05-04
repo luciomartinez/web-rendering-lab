@@ -17,7 +17,7 @@ for (const route of ROUTES) {
     await page.goto(`/${route}`);
     await expect(page.getByRole("heading", { name: "Web Rendering Lab" })).toBeVisible();
     await expect(page.getByTestId("stage")).toBeVisible();
-    await expect(page.getByTestId("active-renderer")).toContainText(labelForRoute(route));
+    await expect(page.getByRole("link", { name: labelForRoute(route) })).toHaveAttribute("aria-current", "page");
     await expect(page.getByTestId("point-count")).toHaveValue(DEFAULT_POINT_COUNTS[route]);
     await expect(page.getByTestId("fps")).not.toHaveText("0", { timeout: 8_000 });
 
@@ -29,7 +29,7 @@ test("root route opens DOM with the safe default", async ({ page }) => {
   await page.goto("/");
 
   await expect(page).toHaveURL(/\/dom$/);
-  await expect(page.getByTestId("active-renderer")).toContainText(/DOM/);
+  await expect(page.getByRole("link", { name: "DOM" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByTestId("point-count")).toHaveValue("1000");
 });
 
@@ -53,7 +53,7 @@ test("switching from an accelerated renderer to DOM clamps before mounting DOM",
 
   await page.getByRole("link", { name: "DOM" }).click();
   await expect(page).toHaveURL(/\/dom$/);
-  await expect(page.getByTestId("active-renderer")).toContainText(/DOM/);
+  await expect(page.getByRole("link", { name: "DOM" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByTestId("point-count")).toHaveValue("1000");
 });
 
@@ -93,16 +93,16 @@ test("webgpu renderer renders or shows the compatibility message", async ({ page
   expect(hasNonBlankPixels(image)).toBe(true);
 });
 
-function labelForRoute(route: (typeof ROUTES)[number]): RegExp {
+function labelForRoute(route: (typeof ROUTES)[number]): string {
   switch (route) {
     case "dom":
-      return /DOM/;
+      return "DOM";
     case "canvas":
-      return /Canvas 2D/;
+      return "Canvas 2D";
     case "webgl":
-      return /WebGL2/;
+      return "WebGL2";
     case "webgpu":
-      return /WebGPU/;
+      return "WebGPU";
   }
 }
 

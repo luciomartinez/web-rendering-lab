@@ -115,38 +115,16 @@ export class RenderingLabApp {
             <span>Frame</span>
             <strong id="frame-ms" data-testid="frame-ms">0.0ms</strong>
           </div>
+          <div class="metric metric--wide">
+            <span>Hovered</span>
+            <strong id="hovered-value" data-testid="hovered-value">none</strong>
+          </div>
         </section>
 
         <main class="workspace">
           <section class="stage-panel">
-            <div class="stage-heading">
-              <div>
-                <span class="stage-label">Renderer</span>
-                <strong id="active-renderer" data-testid="active-renderer">${ROUTE_LABELS[activeKind]}</strong>
-              </div>
-              <div class="hover-readout" id="hover-readout" data-testid="hover-readout">No point</div>
-            </div>
             <div class="stage" id="stage" data-testid="stage" tabindex="0" aria-label="${ROUTE_LABELS[activeKind]} scatterplot"></div>
           </section>
-
-          <aside class="inspector" aria-label="Viewport state">
-            <div class="inspector-row">
-              <span>Scale</span>
-              <strong id="scale-value">1.000x</strong>
-            </div>
-            <div class="inspector-row">
-              <span>Offset</span>
-              <strong id="offset-value">0, 0</strong>
-            </div>
-            <div class="inspector-row">
-              <span>Dataset</span>
-              <strong id="dataset-value">${formatCount(this.state.pointCount)}</strong>
-            </div>
-            <div class="inspector-row">
-              <span>Hovered</span>
-              <strong id="hovered-value">none</strong>
-            </div>
-          </aside>
         </main>
       </div>
     `;
@@ -263,7 +241,6 @@ export class RenderingLabApp {
     this.state.pointCount = pointCount;
     this.state.hoveredId = null;
     this.data = generatePoints(pointCount);
-    this.root.querySelector("#dataset-value")?.replaceChildren(formatCount(pointCount));
     this.resetViewport();
     void this.mountRenderer();
   }
@@ -300,8 +277,6 @@ export class RenderingLabApp {
       link.classList.toggle("is-active", isActive);
       link.setAttribute("aria-current", isActive ? "page" : "false");
     });
-    this.root.querySelector("#active-renderer")?.replaceChildren(ROUTE_LABELS[activeKind]);
-    this.root.querySelector("#dataset-value")?.replaceChildren(formatCount(this.state.pointCount));
     this.updatePointCountSelect(activeKind);
 
     if (this.stage) {
@@ -311,14 +286,7 @@ export class RenderingLabApp {
 
   private updateReadouts(): void {
     const hovered = this.state.hoveredId === null ? null : this.data[this.state.hoveredId];
-    this.root.querySelector("#scale-value")?.replaceChildren(`${this.state.viewport.scale.toFixed(3)}x`);
-    this.root
-      .querySelector("#offset-value")
-      ?.replaceChildren(`${Math.round(this.state.viewport.offsetX)}, ${Math.round(this.state.viewport.offsetY)}`);
     this.root.querySelector("#hovered-value")?.replaceChildren(hovered ? `#${hovered.id}` : "none");
-    this.root
-      .querySelector("#hover-readout")
-      ?.replaceChildren(hovered ? `#${hovered.id}  ${Math.round(hovered.x)}, ${Math.round(hovered.y)}` : "No point");
   }
 
   private handlePointerDown = (event: PointerEvent): void => {
