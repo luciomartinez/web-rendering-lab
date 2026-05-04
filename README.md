@@ -26,10 +26,7 @@ npm run dev
 
 Open:
 
-- `http://localhost:5173/dom`
-- `http://localhost:5173/canvas`
-- `http://localhost:5173/webgl`
-- `http://localhost:5173/webgpu`
+[http://localhost:5173](http://localhost:5173)
 
 ## Check
 
