@@ -64,19 +64,16 @@ h1 {
   letter-spacing: 0;
 }
 
-.topbar-actions {
+.title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 12px;
 }
 
 .renderer-tabs {
   display: flex;
-  flex: 0 1 auto;
   align-items: center;
   gap: 6px;
-  min-width: 0;
   padding: 4px;
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 8px;
@@ -106,20 +103,22 @@ h1 {
 }
 
 .source-link {
-  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 0 12px;
+  width: 36px;
+  height: 36px;
   border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 8px;
+  border-radius: 999px;
   color: #dbeafe;
   background: rgba(15, 23, 42, 0.72);
-  font-size: 0.92rem;
-  font-weight: 700;
   text-decoration: none;
-  white-space: nowrap;
+}
+
+.source-link__icon {
+  width: 20px;
+  height: auto;
+  display: block;
 }
 
 .source-link:hover {
@@ -283,10 +282,6 @@ h1 {
   .topbar {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .topbar-actions {
-    align-items: stretch;
   }
 
   .renderer-tabs,

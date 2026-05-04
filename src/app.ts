@@ -1,4 +1,5 @@
 import { DEFAULT_POINT_COUNT, generatePoints, WORLD_BOUNDS } from "./data";
+import githubLogoUrl from "./assets/github-invertocat-white.svg";
 import { FpsMeter } from "./metrics";
 import { CanvasRenderer } from "./renderers/canvasRenderer";
 import { DomRenderer } from "./renderers/domRenderer";
@@ -91,30 +92,30 @@ export class RenderingLabApp {
         <header class="topbar">
           <div>
             <p class="eyebrow">Benchmark lab</p>
-            <h1>Web Rendering Lab</h1>
+            <div class="title-row">
+              <h1>Web Rendering Lab</h1>
+              <a
+                class="source-link"
+                href="https://github.com/luciomartinez/web-rendering-lab"
+                target="_blank"
+                rel="noreferrer"
+                title="GitHub">
+                <img class="source-link__icon" src="${githubLogoUrl}" alt="GitHub">
+              </a>
+            </div>
           </div>
-          <div class="topbar-actions">
-            <nav class="renderer-tabs" aria-label="Renderer demos">
-              ${RENDERER_KINDS.map(
-                (kind) => `
-                  <a class="renderer-tab ${kind === activeKind ? "is-active" : ""}"
-                    href="${getRendererPath(kind)}"
-                    data-route="${kind}"
-                    aria-current="${kind === activeKind ? "page" : "false"}">
-                    ${ROUTE_LABELS[kind]}
-                  </a>
-                `
-              ).join("")}
-            </nav>
-            <a
-              class="source-link"
-              href="https://github.com/luciomartinez/web-rendering-lab"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open source repository on GitHub">
-              GitHub
-            </a>
-          </div>
+          <nav class="renderer-tabs" aria-label="Renderer demos">
+            ${RENDERER_KINDS.map(
+              (kind) => `
+                <a class="renderer-tab ${kind === activeKind ? "is-active" : ""}"
+                  href="${getRendererPath(kind)}"
+                  data-route="${kind}"
+                  aria-current="${kind === activeKind ? "page" : "false"}">
+                  ${ROUTE_LABELS[kind]}
+                </a>
+              `
+            ).join("")}
+          </nav>
         </header>
 
         <section class="control-strip" aria-label="Benchmark controls">
