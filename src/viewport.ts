@@ -89,31 +89,6 @@ export function isPointInsideBounds(point: PointData, bounds: WorldBounds): bool
   return point.x >= bounds.minX && point.x <= bounds.maxX && point.y >= bounds.minY && point.y <= bounds.maxY;
 }
 
-export function nearestPoint(
-  data: readonly PointData[],
-  viewport: ViewportState,
-  screenPoint: ScreenPoint,
-  tolerancePx = 5
-): PointData | null {
-  let nearest: PointData | null = null;
-  let nearestDistanceSq = Number.POSITIVE_INFINITY;
-
-  for (const point of data) {
-    const rendered = worldToScreen(point, viewport);
-    const hitRadius = Math.max(point.radiusPx + tolerancePx, 7);
-    const dx = rendered.x - screenPoint.x;
-    const dy = rendered.y - screenPoint.y;
-    const distanceSq = dx * dx + dy * dy;
-
-    if (distanceSq <= hitRadius * hitRadius && distanceSq < nearestDistanceSq) {
-      nearest = point;
-      nearestDistanceSq = distanceSq;
-    }
-  }
-
-  return nearest;
-}
-
 export function getDevicePixelRatio(): number {
   return Math.max(1, Math.min(3, window.devicePixelRatio || 1));
 }

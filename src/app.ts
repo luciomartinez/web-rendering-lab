@@ -1,5 +1,5 @@
 import { DEFAULT_POINT_COUNT, generatePoints, WORLD_BOUNDS } from "./data";
-import { FrameMeter } from "./metrics";
+import { FpsMeter } from "./metrics";
 import { CanvasRenderer } from "./renderers/canvasRenderer";
 import { DomRenderer } from "./renderers/domRenderer";
 import { WebGLRenderer } from "./renderers/webglRenderer";
@@ -38,7 +38,7 @@ export class RenderingLabApp {
     webgl: DEFAULT_POINT_COUNT,
     webgpu: DEFAULT_POINT_COUNT
   };
-  private frameMeter = new FrameMeter();
+  private fpsMeter = new FpsMeter();
   private resizeObserver: ResizeObserver | null = null;
   private mountToken = 0;
   private dragState:
@@ -57,7 +57,6 @@ export class RenderingLabApp {
     this.data = generatePoints(pointCount);
     this.state = {
       pointCount,
-      hoveredId: null,
       viewport: createViewport(1, 1)
     };
   }
@@ -110,14 +109,6 @@ export class RenderingLabApp {
           <div class="metric" aria-live="polite">
             <span>FPS</span>
             <strong id="fps" data-testid="fps">0</strong>
-          </div>
-          <div class="metric">
-            <span>Frame</span>
-            <strong id="frame-ms" data-testid="frame-ms">0.0ms</strong>
-          </div>
-          <div class="metric metric--wide">
-            <span>Hovered</span>
-            <strong id="hovered-value" data-testid="hovered-value">none</strong>
           </div>
         </section>
 
@@ -183,7 +174,6 @@ export class RenderingLabApp {
     this.stage.querySelector(".renderer-message--loading")?.remove();
     this.renderer = renderer;
     this.setupResizeObserver();
-    this.updateReadouts();
   }
 
   private setupResizeObserver(): void {
@@ -210,21 +200,19 @@ export class RenderingLabApp {
       }
 
       this.renderer?.resize(this.state.viewport);
-      this.updateReadouts();
     });
     this.resizeObserver.observe(this.stage);
   }
 
   private startAnimationLoop(): void {
-    this.frameMeter.reset();
+    this.fpsMeter.reset();
 
     const renderFrame = (now: number) => {
       window.__WEB_RENDERING_LAB_STATE__ = this.state;
       this.renderer?.render(this.state);
-      const stats = this.frameMeter.record(now);
+      const stats = this.fpsMeter.record(now);
       if (stats) {
         this.root.querySelector("#fps")?.replaceChildren(String(stats.fps));
-        this.root.querySelector("#frame-ms")?.replaceChildren(`${stats.averageFrameMs.toFixed(1)}ms`);
       }
       requestAnimationFrame(renderFrame);
     };
@@ -239,7 +227,6 @@ export class RenderingLabApp {
 
     this.pointCountsByRenderer[this.activeKind] = pointCount;
     this.state.pointCount = pointCount;
-    this.state.hoveredId = null;
     this.data = generatePoints(pointCount);
     this.resetViewport();
     void this.mountRenderer();
@@ -248,7 +235,6 @@ export class RenderingLabApp {
   private resetViewport(): void {
     this.state.viewport = fitViewportToBounds(this.state.viewport, WORLD_BOUNDS);
     this.renderer?.resize(this.state.viewport);
-    this.updateReadouts();
   }
 
   private switchRenderer(nextKind: RendererKind): void {
@@ -262,7 +248,6 @@ export class RenderingLabApp {
 
     if (nextPointCount !== this.state.pointCount) {
       this.state.pointCount = nextPointCount;
-      this.state.hoveredId = null;
       this.data = generatePoints(nextPointCount);
       this.resetViewport();
     }
@@ -282,11 +267,6 @@ export class RenderingLabApp {
     if (this.stage) {
       this.stage.setAttribute("aria-label", `${ROUTE_LABELS[activeKind]} scatterplot`);
     }
-  }
-
-  private updateReadouts(): void {
-    const hovered = this.state.hoveredId === null ? null : this.data[this.state.hoveredId];
-    this.root.querySelector("#hovered-value")?.replaceChildren(hovered ? `#${hovered.id}` : "none");
   }
 
   private handlePointerDown = (event: PointerEvent): void => {
@@ -326,13 +306,8 @@ export class RenderingLabApp {
       }
 
       this.dragState.previous = point;
-      this.updateReadouts();
       return;
     }
-
-    const hit = this.renderer?.hitTest(point) ?? null;
-    this.state.hoveredId = hit?.id ?? null;
-    this.updateReadouts();
   };
 
   private handlePointerUp = (event: PointerEvent): void => {
@@ -340,13 +315,8 @@ export class RenderingLabApp {
       return;
     }
 
-    const moved = this.dragState.moved;
     this.dragState = null;
     this.stage.releasePointerCapture(event.pointerId);
-
-    if (moved) {
-      this.updateReadouts();
-    }
   };
 
   private handlePointerCancel = (event: PointerEvent): void => {
@@ -361,7 +331,6 @@ export class RenderingLabApp {
     const anchor = this.toStagePoint(event);
     const factor = Math.exp(-event.deltaY * 0.0012);
     this.state.viewport = zoomViewportAt(this.state.viewport, anchor, factor);
-    this.updateReadouts();
   };
 
   private handlePopState = (): void => {

@@ -1,21 +1,16 @@
-import type { BenchmarkRenderer, PointData, RenderSize, SceneState, ScreenPoint } from "../types";
-import { nearestPoint } from "../viewport";
+import type { BenchmarkRenderer, PointData, RenderSize, SceneState } from "../types";
 
 const CHUNK_SIZE = 5_000;
 
 export class DomRenderer implements BenchmarkRenderer {
   readonly kind = "dom" as const;
 
-  private data: PointData[] = [];
   private root: HTMLDivElement | null = null;
   private layer: HTMLDivElement | null = null;
-  private elements: HTMLDivElement[] = [];
-  private lastHoveredId: number | null = null;
   private disposed = false;
 
   async init(container: HTMLElement, data: PointData[], state: SceneState): Promise<void> {
     this.disposed = false;
-    this.data = data;
     this.root = document.createElement("div");
     this.root.className = "dom-scene";
     this.layer = document.createElement("div");
@@ -34,20 +29,10 @@ export class DomRenderer implements BenchmarkRenderer {
 
     const { offsetX, offsetY, scale } = state.viewport;
     this.layer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`;
-    this.syncHover(state.hoveredId);
   }
 
   resize(_size: RenderSize): void {
     this.renderSizeAttributes();
-  }
-
-  hitTest(point: ScreenPoint): PointData | null {
-    const appState = window.__WEB_RENDERING_LAB_STATE__;
-    if (!appState) {
-      return null;
-    }
-
-    return nearestPoint(this.data, appState.viewport, point);
   }
 
   destroy(): void {
@@ -55,16 +40,12 @@ export class DomRenderer implements BenchmarkRenderer {
     this.root?.remove();
     this.root = null;
     this.layer = null;
-    this.elements = [];
-    this.lastHoveredId = null;
   }
 
   private async createElements(data: PointData[]): Promise<void> {
     if (!this.layer) {
       return;
     }
-
-    this.elements = new Array(data.length);
 
     for (let start = 0; start < data.length; start += CHUNK_SIZE) {
       if (this.disposed || !this.layer) {
@@ -84,29 +65,12 @@ export class DomRenderer implements BenchmarkRenderer {
         dot.style.height = `${point.radiusPx * 2}px`;
         dot.style.backgroundColor = point.color;
         dot.dataset.pointId = String(point.id);
-        this.elements[index] = dot;
         fragment.append(dot);
       }
 
       this.layer.append(fragment);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     }
-  }
-
-  private syncHover(hoveredId: number | null): void {
-    if (hoveredId === this.lastHoveredId) {
-      return;
-    }
-
-    if (this.lastHoveredId !== null) {
-      this.elements[this.lastHoveredId]?.classList.remove("is-hovered");
-    }
-
-    if (hoveredId !== null) {
-      this.elements[hoveredId]?.classList.add("is-hovered");
-    }
-
-    this.lastHoveredId = hoveredId;
   }
 
   private renderSizeAttributes(): void {

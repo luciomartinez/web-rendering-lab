@@ -1,5 +1,4 @@
-import type { BenchmarkRenderer, PointData, RenderSize, SceneState, ScreenPoint } from "../types";
-import { nearestPoint } from "../viewport";
+import type { BenchmarkRenderer, PointData, RenderSize, SceneState } from "../types";
 
 const SHADER = `
 struct Uniforms {
@@ -81,7 +80,6 @@ export class WebGPURenderer implements BenchmarkRenderer {
   private uniformBuffer: any = null;
   private pointBuffer: any = null;
   private pointData = new Float32Array();
-  private lastColorSignature = "";
   private message: HTMLDivElement | null = null;
 
   async init(container: HTMLElement, data: PointData[], state: SceneState): Promise<void> {
@@ -119,7 +117,7 @@ export class WebGPURenderer implements BenchmarkRenderer {
     });
 
     this.createPipeline(format);
-    this.uploadPoints(state);
+    this.uploadPoints();
     this.resize(state.viewport);
     this.render(state);
   }
@@ -140,7 +138,6 @@ export class WebGPURenderer implements BenchmarkRenderer {
       return;
     }
 
-    this.updatePointColors(state);
     this.writeUniforms(state);
 
     const encoder = this.device.createCommandEncoder();
@@ -163,15 +160,6 @@ export class WebGPURenderer implements BenchmarkRenderer {
     this.device.queue.submit([encoder.finish()]);
   }
 
-  hitTest(point: ScreenPoint): PointData | null {
-    const appState = window.__WEB_RENDERING_LAB_STATE__;
-    if (!appState) {
-      return null;
-    }
-
-    return nearestPoint(this.data, appState.viewport, point);
-  }
-
   destroy(): void {
     this.canvas?.remove();
     this.message?.remove();
@@ -184,7 +172,6 @@ export class WebGPURenderer implements BenchmarkRenderer {
     this.uniformBuffer = null;
     this.pointBuffer = null;
     this.pointData = new Float32Array();
-    this.lastColorSignature = "";
   }
 
   private createPipeline(format: string): void {
@@ -259,10 +246,10 @@ export class WebGPURenderer implements BenchmarkRenderer {
     });
   }
 
-  private uploadPoints(state: SceneState): void {
+  private uploadPoints(): void {
     const gpuGlobals = globalThis as WebGpuGlobals;
     this.pointData = new Float32Array(this.data.length * 6);
-    this.writePointData(state);
+    this.writePointData();
     this.pointBuffer = this.device.createBuffer({
       size: this.pointData.byteLength,
       usage: gpuGlobals.GPUBufferUsage.VERTEX | gpuGlobals.GPUBufferUsage.COPY_DST
@@ -270,33 +257,16 @@ export class WebGPURenderer implements BenchmarkRenderer {
     this.device.queue.writeBuffer(this.pointBuffer, 0, this.pointData);
   }
 
-  private updatePointColors(state: SceneState): void {
-    const signature = String(state.hoveredId ?? "none");
-    if (signature === this.lastColorSignature) {
-      return;
-    }
-
-    this.writePointData(state);
-    this.device.queue.writeBuffer(this.pointBuffer, 0, this.pointData);
-    this.lastColorSignature = signature;
-  }
-
-  private writePointData(state: SceneState): void {
+  private writePointData(): void {
     for (let index = 0; index < this.data.length; index += 1) {
       const point = this.data[index];
       const offset = index * 6;
       this.pointData[offset] = point.x;
       this.pointData[offset + 1] = point.y;
 
-      if (state.hoveredId === point.id) {
-        this.pointData[offset + 2] = 0.972;
-        this.pointData[offset + 3] = 0.98;
-        this.pointData[offset + 4] = 0.988;
-      } else {
-        this.pointData[offset + 2] = point.rgb[0];
-        this.pointData[offset + 3] = point.rgb[1];
-        this.pointData[offset + 4] = point.rgb[2];
-      }
+      this.pointData[offset + 2] = point.rgb[0];
+      this.pointData[offset + 3] = point.rgb[1];
+      this.pointData[offset + 4] = point.rgb[2];
 
       this.pointData[offset + 5] = point.radiusPx;
     }

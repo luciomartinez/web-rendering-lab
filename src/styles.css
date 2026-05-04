@@ -147,10 +147,6 @@ h1 {
   border-left: 1px solid rgba(148, 163, 184, 0.16);
 }
 
-.metric--wide {
-  min-width: 120px;
-}
-
 .metric span {
   color: #94a3b8;
   font-size: 0.72rem;
@@ -223,13 +219,6 @@ h1 {
   opacity: 0.78;
   transform: translate3d(-50%, -50%, 0);
   box-shadow: 0 0 0 0 rgba(248, 250, 252, 0);
-}
-
-.scatter-dot.is-hovered {
-  z-index: 3;
-  opacity: 1;
-  background: #f8fafc !important;
-  box-shadow: 0 0 0 4px rgba(248, 250, 252, 0.24);
 }
 
 .renderer-message {

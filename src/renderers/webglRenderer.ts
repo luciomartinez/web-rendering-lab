@@ -1,5 +1,4 @@
-import type { BenchmarkRenderer, PointData, RenderSize, SceneState, ScreenPoint } from "../types";
-import { nearestPoint } from "../viewport";
+import type { BenchmarkRenderer, PointData, RenderSize, SceneState } from "../types";
 
 const VERTEX_SHADER = `#version 300 es
 precision highp float;
@@ -48,10 +47,7 @@ export class WebGLRenderer implements BenchmarkRenderer {
   private gl: WebGL2RenderingContext | null = null;
   private program: WebGLProgram | null = null;
   private vao: WebGLVertexArrayObject | null = null;
-  private colorBuffer: WebGLBuffer | null = null;
-  private colorData = new Float32Array();
   private size: RenderSize = { width: 1, height: 1, dpr: 1 };
-  private lastColorSignature = "";
 
   init(container: HTMLElement, data: PointData[], state: SceneState): void {
     this.data = data;
@@ -99,8 +95,6 @@ export class WebGLRenderer implements BenchmarkRenderer {
       return;
     }
 
-    this.updateColorBuffer(state);
-
     const gl = this.gl;
     gl.viewport(0, 0, Math.floor(this.size.width * this.size.dpr), Math.floor(this.size.height * this.size.dpr));
     gl.clearColor(0, 0, 0, 0);
@@ -115,15 +109,6 @@ export class WebGLRenderer implements BenchmarkRenderer {
     gl.bindVertexArray(null);
   }
 
-  hitTest(point: ScreenPoint): PointData | null {
-    const appState = window.__WEB_RENDERING_LAB_STATE__;
-    if (!appState) {
-      return null;
-    }
-
-    return nearestPoint(this.data, appState.viewport, point);
-  }
-
   destroy(): void {
     if (this.gl) {
       this.gl.deleteVertexArray(this.vao);
@@ -136,49 +121,24 @@ export class WebGLRenderer implements BenchmarkRenderer {
     this.program = null;
     this.vao = null;
     this.data = [];
-    this.lastColorSignature = "";
   }
 
   private uploadStaticBuffers(gl: WebGL2RenderingContext, program: WebGLProgram, data: PointData[]): void {
     const positions = new Float32Array(data.length * 2);
     const radii = new Float32Array(data.length);
-    this.colorData = new Float32Array(data.length * 3);
+    const colors = new Float32Array(data.length * 3);
 
     for (let index = 0; index < data.length; index += 1) {
       const point = data[index];
       positions[index * 2] = point.x;
       positions[index * 2 + 1] = point.y;
       radii[index] = point.radiusPx;
-      writeColor(this.colorData, index, point.rgb);
+      writeColor(colors, index, point.rgb);
     }
 
     bindArrayBuffer(gl, program, "a_position", positions, 2);
-    this.colorBuffer = bindArrayBuffer(gl, program, "a_color", this.colorData, 3);
+    bindArrayBuffer(gl, program, "a_color", colors, 3);
     bindArrayBuffer(gl, program, "a_radius", radii, 1);
-  }
-
-  private updateColorBuffer(state: SceneState): void {
-    if (!this.gl || !this.colorBuffer) {
-      return;
-    }
-
-    const signature = String(state.hoveredId ?? "none");
-    if (signature === this.lastColorSignature) {
-      return;
-    }
-
-    for (let index = 0; index < this.data.length; index += 1) {
-      const point = this.data[index];
-      if (state.hoveredId === point.id) {
-        writeColor(this.colorData, index, [0.972, 0.98, 0.988]);
-      } else {
-        writeColor(this.colorData, index, point.rgb);
-      }
-    }
-
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-    this.gl.bufferSubData(this.gl.ARRAY_BUFFER, 0, this.colorData);
-    this.lastColorSignature = signature;
   }
 
   private showUnsupported(container: HTMLElement): void {

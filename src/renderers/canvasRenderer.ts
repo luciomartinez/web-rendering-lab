@@ -1,5 +1,5 @@
-import type { BenchmarkRenderer, PointData, RenderSize, SceneState, ScreenPoint } from "../types";
-import { getVisibleWorldBounds, isPointInsideBounds, nearestPoint, worldToScreen } from "../viewport";
+import type { BenchmarkRenderer, PointData, RenderSize, SceneState } from "../types";
+import { getVisibleWorldBounds, isPointInsideBounds, worldToScreen } from "../viewport";
 
 export class CanvasRenderer implements BenchmarkRenderer {
   readonly kind = "canvas" as const;
@@ -59,18 +59,9 @@ export class CanvasRenderer implements BenchmarkRenderer {
       const rendered = worldToScreen(point, state.viewport);
       ctx.beginPath();
       ctx.arc(rendered.x, rendered.y, point.radiusPx, 0, Math.PI * 2);
-      ctx.fillStyle = colorForPoint(point, state);
+      ctx.fillStyle = point.color;
       ctx.fill();
     }
-  }
-
-  hitTest(point: ScreenPoint): PointData | null {
-    const appState = window.__WEB_RENDERING_LAB_STATE__;
-    if (!appState) {
-      return null;
-    }
-
-    return nearestPoint(this.data, appState.viewport, point);
   }
 
   destroy(): void {
@@ -110,12 +101,4 @@ function drawGrid(ctx: CanvasRenderingContext2D, state: SceneState): void {
 
   ctx.stroke();
   ctx.restore();
-}
-
-function colorForPoint(point: PointData, state: SceneState): string {
-  if (state.hoveredId === point.id) {
-    return "#f8fafc";
-  }
-
-  return point.color;
 }

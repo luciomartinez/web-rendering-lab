@@ -1,42 +1,32 @@
-export interface FrameStats {
+export interface FpsStats {
   fps: number;
-  averageFrameMs: number;
-  lastFrameMs: number;
 }
 
-export class FrameMeter {
-  private lastFrameTime = 0;
+export class FpsMeter {
+  private lastTickTime = 0;
   private sampleStartedAt = 0;
   private framesInSample = 0;
-  private frameMsTotal = 0;
-  private stats: FrameStats = {
-    fps: 0,
-    averageFrameMs: 0,
-    lastFrameMs: 0
+  private stats: FpsStats = {
+    fps: 0
   };
 
   reset(now = performance.now()): void {
-    this.lastFrameTime = now;
+    this.lastTickTime = now;
     this.sampleStartedAt = now;
     this.framesInSample = 0;
-    this.frameMsTotal = 0;
     this.stats = {
-      fps: 0,
-      averageFrameMs: 0,
-      lastFrameMs: 0
+      fps: 0
     };
   }
 
-  record(now: number): FrameStats | null {
-    if (this.lastFrameTime === 0) {
+  record(now: number): FpsStats | null {
+    if (this.lastTickTime === 0) {
       this.reset(now);
       return null;
     }
 
-    const lastFrameMs = now - this.lastFrameTime;
-    this.lastFrameTime = now;
+    this.lastTickTime = now;
     this.framesInSample += 1;
-    this.frameMsTotal += lastFrameMs;
 
     const sampleMs = now - this.sampleStartedAt;
     if (sampleMs < 350) {
@@ -44,18 +34,15 @@ export class FrameMeter {
     }
 
     this.stats = {
-      fps: Math.round((this.framesInSample / sampleMs) * 1000),
-      averageFrameMs: this.frameMsTotal / this.framesInSample,
-      lastFrameMs
+      fps: Math.round((this.framesInSample / sampleMs) * 1000)
     };
     this.sampleStartedAt = now;
     this.framesInSample = 0;
-    this.frameMsTotal = 0;
 
     return this.stats;
   }
 
-  get current(): FrameStats {
+  get current(): FpsStats {
     return this.stats;
   }
 }

@@ -40,7 +40,6 @@ export interface ViewportState {
 
 export interface SceneState {
   pointCount: number;
-  hoveredId: number | null;
   viewport: ViewportState;
 }
 
@@ -55,6 +54,5 @@ export interface BenchmarkRenderer {
   init(container: HTMLElement, data: PointData[], state: SceneState): void | Promise<void>;
   render(state: SceneState): void;
   resize(size: RenderSize): void;
-  hitTest(point: ScreenPoint): PointData | null;
   destroy(): void;
 }
