@@ -8,12 +8,12 @@ Compare browser rendering strategies with the same deterministic scatterplot wor
 
 [https://luciomartinez.github.io/web-rendering-lab/](https://luciomartinez.github.io/web-rendering-lab/)
 
-## Quick Summary
+## Summary
 
-- DOM - purely DOM rendering of elements
-- Canvas 2D - 2D rendering with the HTML canvas API
-- WebGL2 - de-facto standard for performant GPU rendering in browsers
-- WebGPU - new standard for performant 2D rendering
+- DOM - one HTML element per point
+- Canvas 2D - immediate-mode drawing with the canvas API
+- WebGL2 - GPU rendering through the widely supported WebGL API
+- WebGPU - GPU rendering through the newer WebGPU API when available
 
 Each demo shares the same data, pan/zoom controls, point-count presets, and FPS metric so the rendering tradeoffs are easier to compare.
 
