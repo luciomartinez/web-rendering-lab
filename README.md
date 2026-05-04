@@ -17,6 +17,12 @@ Each demo renders the same deterministic scatterplot with shared pan, zoom, and 
 
 DOM opens at 1k points to avoid locking up the browser. Canvas 2D, WebGL2, and WebGPU open at 100k points and include a 1M-point option for heavier comparisons.
 
+## Preview
+
+| Desktop | Mobile |
+| --- | --- |
+| <img src="./demo_desktop.png" alt="Desktop demo of Web Rendering Lab" width="720"> | <img src="./demo_mobile.png" alt="Mobile demo of Web Rendering Lab" width="260"> |
+
 ## Run
 
 ```sh
