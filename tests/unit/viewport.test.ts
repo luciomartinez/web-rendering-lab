@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PointData, ViewportState } from "../../src/types";
-import { idsWithinScreenRadius, nearestPoint, screenToWorld, worldToScreen, zoomViewportAt } from "../../src/viewport";
+import { nearestPoint, screenToWorld, worldToScreen, zoomViewportAt } from "../../src/viewport";
 
 const viewport: ViewportState = {
   width: 800,
@@ -51,7 +51,7 @@ describe("viewport transforms", () => {
   });
 });
 
-describe("hit testing and selection", () => {
+describe("hit testing", () => {
   it("finds the nearest point inside the screen tolerance", () => {
     const rendered = worldToScreen(points[1], viewport);
 
@@ -62,9 +62,4 @@ describe("hit testing and selection", () => {
     expect(nearestPoint(points, viewport, { x: 799, y: 599 })).toBeNull();
   });
 
-  it("collects ids within a screen-space selection radius", () => {
-    const rendered = worldToScreen(points[0], viewport);
-
-    expect(idsWithinScreenRadius(points, viewport, rendered, 12)).toEqual([0]);
-  });
 });

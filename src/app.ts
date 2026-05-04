@@ -10,7 +10,6 @@ import {
   createViewport,
   fitViewportToBounds,
   getDevicePixelRatio,
-  idsWithinScreenRadius,
   panViewport,
   zoomViewportAt
 } from "./viewport";
@@ -22,18 +21,22 @@ const ROUTE_LABELS: Record<RendererKind, string> = {
   webgpu: "WebGPU"
 };
 
-const POINT_COUNT_OPTIONS = [1_000, 10_000, 50_000, 100_000];
+const DOM_DEFAULT_POINT_COUNT = 1_000;
+const DOM_POINT_COUNT_OPTIONS = [1_000, 5_000, 10_000, 25_000];
+const ACCELERATED_POINT_COUNT_OPTIONS = [1_000, 10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
 
 export class RenderingLabApp {
   private root: HTMLElement;
   private stage: HTMLDivElement | null = null;
   private renderer: BenchmarkRenderer | null = null;
-  private data: PointData[] = generatePoints(DEFAULT_POINT_COUNT);
-  private state: SceneState = {
-    pointCount: DEFAULT_POINT_COUNT,
-    hoveredId: null,
-    selectedIds: new Set<number>(),
-    viewport: createViewport(1, 1)
+  private activeKind: RendererKind;
+  private data: PointData[];
+  private state: SceneState;
+  private pointCountsByRenderer: Record<RendererKind, number> = {
+    dom: DOM_DEFAULT_POINT_COUNT,
+    canvas: DEFAULT_POINT_COUNT,
+    webgl: DEFAULT_POINT_COUNT,
+    webgpu: DEFAULT_POINT_COUNT
   };
   private frameMeter = new FrameMeter();
   private resizeObserver: ResizeObserver | null = null;
@@ -49,12 +52,21 @@ export class RenderingLabApp {
 
   constructor(root: HTMLElement) {
     this.root = root;
+    this.activeKind = this.getRoute() ?? "dom";
+    const pointCount = this.getDefaultPointCount(this.activeKind);
+    this.data = generatePoints(pointCount);
+    this.state = {
+      pointCount,
+      hoveredId: null,
+      viewport: createViewport(1, 1)
+    };
   }
 
   start(): void {
     const route = this.getRoute();
     if (!route) {
       history.replaceState(null, "", "/dom");
+      this.activeKind = "dom";
     }
 
     this.renderShell();
@@ -65,7 +77,7 @@ export class RenderingLabApp {
   }
 
   private renderShell(): void {
-    const activeKind = this.getActiveKind();
+    const activeKind = this.activeKind;
     this.root.innerHTML = `
       <div class="app-shell">
         <header class="topbar">
@@ -91,13 +103,10 @@ export class RenderingLabApp {
           <label class="field">
             <span>Points</span>
             <select id="point-count" data-testid="point-count">
-              ${POINT_COUNT_OPTIONS.map(
-                (count) => `<option value="${count}" ${count === this.state.pointCount ? "selected" : ""}>${formatCount(count)}</option>`
-              ).join("")}
+              ${this.renderPointCountOptions(activeKind)}
             </select>
           </label>
           <button class="command-button" type="button" id="reset-view">Reset view</button>
-          <button class="command-button" type="button" id="clear-selection">Clear selection</button>
           <div class="metric" aria-live="polite">
             <span>FPS</span>
             <strong id="fps" data-testid="fps">0</strong>
@@ -105,10 +114,6 @@ export class RenderingLabApp {
           <div class="metric">
             <span>Frame</span>
             <strong id="frame-ms" data-testid="frame-ms">0.0ms</strong>
-          </div>
-          <div class="metric">
-            <span>Selected</span>
-            <strong id="selection-count" data-testid="selection-count">${this.state.selectedIds.size}</strong>
           </div>
         </section>
 
@@ -154,8 +159,7 @@ export class RenderingLabApp {
         event.preventDefault();
         const kind = link.dataset.route as RendererKind;
         history.pushState(null, "", `/${kind}`);
-        this.updateRouteUi(kind);
-        void this.mountRenderer();
+        this.switchRenderer(kind);
       });
     });
 
@@ -166,11 +170,6 @@ export class RenderingLabApp {
 
     this.root.querySelector<HTMLButtonElement>("#reset-view")?.addEventListener("click", () => {
       this.resetViewport();
-    });
-
-    this.root.querySelector<HTMLButtonElement>("#clear-selection")?.addEventListener("click", () => {
-      this.state.selectedIds.clear();
-      this.updateReadouts();
     });
 
     if (this.stage) {
@@ -192,10 +191,10 @@ export class RenderingLabApp {
     this.renderer?.destroy();
     this.renderer = null;
     this.stage.innerHTML = "";
-    this.stage.dataset.renderer = this.getActiveKind();
-    this.stage.append(createLoadingMessage(this.getActiveKind()));
+    this.stage.dataset.renderer = this.activeKind;
+    this.stage.append(createLoadingMessage(this.activeKind));
 
-    const renderer = createRenderer(this.getActiveKind());
+    const renderer = createRenderer(this.activeKind);
     await renderer.init(this.stage, this.data, this.state);
 
     if (token !== this.mountToken) {
@@ -256,8 +255,12 @@ export class RenderingLabApp {
   }
 
   private setPointCount(pointCount: number): void {
+    if (pointCount === this.state.pointCount) {
+      return;
+    }
+
+    this.pointCountsByRenderer[this.activeKind] = pointCount;
     this.state.pointCount = pointCount;
-    this.state.selectedIds.clear();
     this.state.hoveredId = null;
     this.data = generatePoints(pointCount);
     this.root.querySelector("#dataset-value")?.replaceChildren(formatCount(pointCount));
@@ -271,6 +274,26 @@ export class RenderingLabApp {
     this.updateReadouts();
   }
 
+  private switchRenderer(nextKind: RendererKind): void {
+    if (nextKind === this.activeKind) {
+      return;
+    }
+
+    this.pointCountsByRenderer[this.activeKind] = this.state.pointCount;
+    this.activeKind = nextKind;
+    const nextPointCount = this.getRememberedPointCount(nextKind);
+
+    if (nextPointCount !== this.state.pointCount) {
+      this.state.pointCount = nextPointCount;
+      this.state.hoveredId = null;
+      this.data = generatePoints(nextPointCount);
+      this.resetViewport();
+    }
+
+    this.updateRouteUi(nextKind);
+    void this.mountRenderer();
+  }
+
   private updateRouteUi(activeKind: RendererKind): void {
     this.root.querySelectorAll<HTMLAnchorElement>("[data-route]").forEach((link) => {
       const isActive = link.dataset.route === activeKind;
@@ -278,6 +301,8 @@ export class RenderingLabApp {
       link.setAttribute("aria-current", isActive ? "page" : "false");
     });
     this.root.querySelector("#active-renderer")?.replaceChildren(ROUTE_LABELS[activeKind]);
+    this.root.querySelector("#dataset-value")?.replaceChildren(formatCount(this.state.pointCount));
+    this.updatePointCountSelect(activeKind);
 
     if (this.stage) {
       this.stage.setAttribute("aria-label", `${ROUTE_LABELS[activeKind]} scatterplot`);
@@ -286,7 +311,6 @@ export class RenderingLabApp {
 
   private updateReadouts(): void {
     const hovered = this.state.hoveredId === null ? null : this.data[this.state.hoveredId];
-    this.root.querySelector("#selection-count")?.replaceChildren(String(this.state.selectedIds.size));
     this.root.querySelector("#scale-value")?.replaceChildren(`${this.state.viewport.scale.toFixed(3)}x`);
     this.root
       .querySelector("#offset-value")
@@ -348,29 +372,13 @@ export class RenderingLabApp {
       return;
     }
 
-    const point = this.toStagePoint(event);
     const moved = this.dragState.moved;
     this.dragState = null;
     this.stage.releasePointerCapture(event.pointerId);
 
-    if (!moved) {
-      if (event.altKey) {
-        for (const id of idsWithinScreenRadius(this.data, this.state.viewport, point, 36)) {
-          this.state.selectedIds.add(id);
-        }
-      } else {
-        const hit = this.renderer?.hitTest(point) ?? null;
-        if (hit) {
-          if (this.state.selectedIds.has(hit.id)) {
-            this.state.selectedIds.delete(hit.id);
-          } else {
-            this.state.selectedIds.add(hit.id);
-          }
-        }
-      }
+    if (moved) {
+      this.updateReadouts();
     }
-
-    this.updateReadouts();
   };
 
   private handlePointerCancel = (event: PointerEvent): void => {
@@ -389,9 +397,7 @@ export class RenderingLabApp {
   };
 
   private handlePopState = (): void => {
-    const kind = this.getActiveKind();
-    this.updateRouteUi(kind);
-    void this.mountRenderer();
+    this.switchRenderer(this.getRoute() ?? "dom");
   };
 
   private toStagePoint(event: MouseEvent | PointerEvent | WheelEvent): ScreenPoint {
@@ -406,10 +412,6 @@ export class RenderingLabApp {
     };
   }
 
-  private getActiveKind(): RendererKind {
-    return this.getRoute() ?? "dom";
-  }
-
   private getRoute(): RendererKind | null {
     const route = window.location.pathname.replace("/", "");
     if (RENDERER_KINDS.includes(route as RendererKind)) {
@@ -417,6 +419,45 @@ export class RenderingLabApp {
     }
 
     return null;
+  }
+
+  private getRememberedPointCount(kind: RendererKind): number {
+    const rememberedCount = this.pointCountsByRenderer[kind];
+    const options = this.getPointCountOptions(kind);
+
+    if (options.includes(rememberedCount)) {
+      return rememberedCount;
+    }
+
+    return this.getDefaultPointCount(kind);
+  }
+
+  private getDefaultPointCount(kind: RendererKind): number {
+    return kind === "dom" ? DOM_DEFAULT_POINT_COUNT : DEFAULT_POINT_COUNT;
+  }
+
+  private getPointCountOptions(kind: RendererKind): number[] {
+    return kind === "dom" ? DOM_POINT_COUNT_OPTIONS : ACCELERATED_POINT_COUNT_OPTIONS;
+  }
+
+  private updatePointCountSelect(kind: RendererKind): void {
+    const select = this.root.querySelector<HTMLSelectElement>("#point-count");
+
+    if (!select) {
+      return;
+    }
+
+    select.innerHTML = this.renderPointCountOptions(kind);
+    select.value = String(this.state.pointCount);
+  }
+
+  private renderPointCountOptions(kind: RendererKind): string {
+    return this.getPointCountOptions(kind)
+      .map(
+        (count) =>
+          `<option value="${count}" ${count === this.state.pointCount ? "selected" : ""}>${formatCount(count)}</option>`
+      )
+      .join("");
   }
 }
 

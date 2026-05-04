@@ -11,7 +11,6 @@ export class DomRenderer implements BenchmarkRenderer {
   private layer: HTMLDivElement | null = null;
   private elements: HTMLDivElement[] = [];
   private lastHoveredId: number | null = null;
-  private lastSelectedIds = new Set<number>();
   private disposed = false;
 
   async init(container: HTMLElement, data: PointData[], state: SceneState): Promise<void> {
@@ -36,7 +35,6 @@ export class DomRenderer implements BenchmarkRenderer {
     const { offsetX, offsetY, scale } = state.viewport;
     this.layer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`;
     this.syncHover(state.hoveredId);
-    this.syncSelection(state.selectedIds);
   }
 
   resize(_size: RenderSize): void {
@@ -59,7 +57,6 @@ export class DomRenderer implements BenchmarkRenderer {
     this.layer = null;
     this.elements = [];
     this.lastHoveredId = null;
-    this.lastSelectedIds.clear();
   }
 
   private async createElements(data: PointData[]): Promise<void> {
@@ -110,22 +107,6 @@ export class DomRenderer implements BenchmarkRenderer {
     }
 
     this.lastHoveredId = hoveredId;
-  }
-
-  private syncSelection(selectedIds: Set<number>): void {
-    for (const previousId of this.lastSelectedIds) {
-      if (!selectedIds.has(previousId)) {
-        this.elements[previousId]?.classList.remove("is-selected");
-        this.lastSelectedIds.delete(previousId);
-      }
-    }
-
-    for (const selectedId of selectedIds) {
-      if (!this.lastSelectedIds.has(selectedId)) {
-        this.elements[selectedId]?.classList.add("is-selected");
-        this.lastSelectedIds.add(selectedId);
-      }
-    }
   }
 
   private renderSizeAttributes(): void {

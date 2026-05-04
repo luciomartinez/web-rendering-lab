@@ -255,13 +255,6 @@ h1 {
   box-shadow: 0 0 0 4px rgba(248, 250, 252, 0.24);
 }
 
-.scatter-dot.is-selected {
-  z-index: 2;
-  opacity: 1;
-  background: #f59e0b !important;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.26);
-}
-
 .renderer-message {
   position: absolute;
   inset: 0;

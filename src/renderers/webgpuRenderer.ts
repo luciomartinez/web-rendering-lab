@@ -271,7 +271,7 @@ export class WebGPURenderer implements BenchmarkRenderer {
   }
 
   private updatePointColors(state: SceneState): void {
-    const signature = `${state.hoveredId ?? "none"}:${Array.from(state.selectedIds).sort((a, b) => a - b).join(",")}`;
+    const signature = String(state.hoveredId ?? "none");
     if (signature === this.lastColorSignature) {
       return;
     }
@@ -292,10 +292,6 @@ export class WebGPURenderer implements BenchmarkRenderer {
         this.pointData[offset + 2] = 0.972;
         this.pointData[offset + 3] = 0.98;
         this.pointData[offset + 4] = 0.988;
-      } else if (state.selectedIds.has(point.id)) {
-        this.pointData[offset + 2] = 0.961;
-        this.pointData[offset + 3] = 0.62;
-        this.pointData[offset + 4] = 0.043;
       } else {
         this.pointData[offset + 2] = point.rgb[0];
         this.pointData[offset + 3] = point.rgb[1];

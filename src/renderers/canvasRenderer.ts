@@ -117,9 +117,5 @@ function colorForPoint(point: PointData, state: SceneState): string {
     return "#f8fafc";
   }
 
-  if (state.selectedIds.has(point.id)) {
-    return "#f59e0b";
-  }
-
   return point.color;
 }

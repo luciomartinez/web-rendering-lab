@@ -13,7 +13,9 @@ This repository includes 4 demos:
 - WebGL - de-facto standard for performant 2D rendering
 - WebGPU - new standard for performant 2D rendering
 
-Each demo renders the same deterministic 100k-point scatterplot with shared pan, zoom, hover, selection, and FPS/frame-time metrics.
+Each demo renders the same deterministic scatterplot with shared pan, zoom, hover, and FPS/frame-time metrics.
+
+DOM opens at 1k points to avoid locking up the browser. Canvas, WebGL2, and WebGPU open at 100k points and include a 1M-point option for heavier comparisons.
 
 ## Run
 

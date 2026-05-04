@@ -162,7 +162,7 @@ export class WebGLRenderer implements BenchmarkRenderer {
       return;
     }
 
-    const signature = `${state.hoveredId ?? "none"}:${Array.from(state.selectedIds).sort((a, b) => a - b).join(",")}`;
+    const signature = String(state.hoveredId ?? "none");
     if (signature === this.lastColorSignature) {
       return;
     }
@@ -171,8 +171,6 @@ export class WebGLRenderer implements BenchmarkRenderer {
       const point = this.data[index];
       if (state.hoveredId === point.id) {
         writeColor(this.colorData, index, [0.972, 0.98, 0.988]);
-      } else if (state.selectedIds.has(point.id)) {
-        writeColor(this.colorData, index, [0.961, 0.62, 0.043]);
       } else {
         writeColor(this.colorData, index, point.rgb);
       }

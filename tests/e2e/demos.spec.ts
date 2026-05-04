@@ -2,6 +2,12 @@ import { expect, test } from "@playwright/test";
 import { PNG } from "pngjs";
 
 const ROUTES = ["dom", "canvas", "webgl", "webgpu"] as const;
+const DEFAULT_POINT_COUNTS: Record<(typeof ROUTES)[number], string> = {
+  dom: "1000",
+  canvas: "100000",
+  webgl: "100000",
+  webgpu: "100000"
+};
 
 for (const route of ROUTES) {
   test(`/${route} mounts the benchmark UI`, async ({ page }) => {
@@ -12,12 +18,44 @@ for (const route of ROUTES) {
     await expect(page.getByRole("heading", { name: "Web Rendering Lab" })).toBeVisible();
     await expect(page.getByTestId("stage")).toBeVisible();
     await expect(page.getByTestId("active-renderer")).toContainText(labelForRoute(route));
-    await expect(page.getByTestId("point-count")).toHaveValue("100000");
+    await expect(page.getByTestId("point-count")).toHaveValue(DEFAULT_POINT_COUNTS[route]);
     await expect(page.getByTestId("fps")).not.toHaveText("0", { timeout: 8_000 });
 
     expect(pageErrors).toEqual([]);
   });
 }
+
+test("root route opens DOM with the safe default", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page).toHaveURL(/\/dom$/);
+  await expect(page.getByTestId("active-renderer")).toContainText(/DOM/);
+  await expect(page.getByTestId("point-count")).toHaveValue("1000");
+});
+
+test("DOM starts with safe point-count options", async ({ page }) => {
+  await page.goto("/dom");
+
+  await expect(page.getByTestId("point-count")).toHaveValue("1000");
+  await expect(page.locator("#point-count option[value='100000']")).toHaveCount(0);
+  await expect(page.locator("#point-count option[value='1000000']")).toHaveCount(0);
+});
+
+test("accelerated renderers expose the 1M benchmark option", async ({ page }) => {
+  await page.goto("/webgl");
+
+  await expect(page.locator("#point-count option[value='1000000']")).toHaveCount(1);
+});
+
+test("switching from an accelerated renderer to DOM clamps before mounting DOM", async ({ page }) => {
+  await page.goto("/canvas");
+  await expect(page.getByTestId("point-count")).toHaveValue("100000");
+
+  await page.getByRole("link", { name: "DOM" }).click();
+  await expect(page).toHaveURL(/\/dom$/);
+  await expect(page.getByTestId("active-renderer")).toContainText(/DOM/);
+  await expect(page.getByTestId("point-count")).toHaveValue("1000");
+});
 
 test("canvas renderer produces nonblank pixels", async ({ page }) => {
   await page.goto("/canvas");

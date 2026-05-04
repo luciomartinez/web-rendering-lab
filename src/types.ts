@@ -41,7 +41,6 @@ export interface ViewportState {
 export interface SceneState {
   pointCount: number;
   hoveredId: number | null;
-  selectedIds: Set<number>;
   viewport: ViewportState;
 }
 

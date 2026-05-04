@@ -114,28 +114,6 @@ export function nearestPoint(
   return nearest;
 }
 
-export function idsWithinScreenRadius(
-  data: readonly PointData[],
-  viewport: ViewportState,
-  center: ScreenPoint,
-  radiusPx: number
-): number[] {
-  const radiusSq = radiusPx * radiusPx;
-  const ids: number[] = [];
-
-  for (const point of data) {
-    const rendered = worldToScreen(point, viewport);
-    const dx = rendered.x - center.x;
-    const dy = rendered.y - center.y;
-
-    if (dx * dx + dy * dy <= radiusSq) {
-      ids.push(point.id);
-    }
-  }
-
-  return ids;
-}
-
 export function getDevicePixelRatio(): number {
   return Math.max(1, Math.min(3, window.devicePixelRatio || 1));
 }
