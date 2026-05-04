@@ -24,6 +24,7 @@ const ROUTE_LABELS: Record<RendererKind, string> = {
 
 const DOM_DEFAULT_POINT_COUNT = 1_000;
 const POINT_COUNT_OPTIONS = [1_000, 10_000, 100_000, 1_000_000];
+const BASE_PATH = normalizeBasePath(import.meta.env.BASE_URL);
 
 export class RenderingLabApp {
   private root: HTMLElement;
@@ -72,7 +73,7 @@ export class RenderingLabApp {
   start(): void {
     const route = this.getRoute();
     if (!route) {
-      history.replaceState(null, "", "/dom");
+      history.replaceState(null, "", getRendererPath("dom"));
       this.activeKind = "dom";
     }
 
@@ -96,7 +97,7 @@ export class RenderingLabApp {
             ${RENDERER_KINDS.map(
               (kind) => `
                 <a class="renderer-tab ${kind === activeKind ? "is-active" : ""}"
-                  href="/${kind}"
+                  href="${getRendererPath(kind)}"
                   data-route="${kind}"
                   aria-current="${kind === activeKind ? "page" : "false"}">
                   ${ROUTE_LABELS[kind]}
@@ -135,7 +136,7 @@ export class RenderingLabApp {
       link.addEventListener("click", (event) => {
         event.preventDefault();
         const kind = link.dataset.route as RendererKind;
-        history.pushState(null, "", `/${kind}`);
+        history.pushState(null, "", getRendererPath(kind));
         this.switchRenderer(kind);
       });
     });
@@ -469,7 +470,7 @@ export class RenderingLabApp {
   }
 
   private getRoute(): RendererKind | null {
-    const route = window.location.pathname.replace("/", "");
+    const route = getRoutePath(window.location.pathname);
     if (RENDERER_KINDS.includes(route as RendererKind)) {
       return route as RendererKind;
     }
@@ -515,6 +516,41 @@ export class RenderingLabApp {
       )
       .join("");
   }
+}
+
+function normalizeBasePath(base: string): string {
+  if (!base || base === "/") {
+    return "/";
+  }
+
+  const path = base.startsWith("/") ? base : `/${base}`;
+  return path.endsWith("/") ? path : `${path}/`;
+}
+
+function getRendererPath(kind: RendererKind): string {
+  return BASE_PATH === "/" ? `/${kind}` : `${BASE_PATH}${kind}`;
+}
+
+function getRoutePath(pathname: string): string {
+  if (BASE_PATH === "/") {
+    return trimPath(pathname);
+  }
+
+  const baseWithoutTrailingSlash = BASE_PATH.slice(0, -1);
+
+  if (pathname === BASE_PATH || pathname === baseWithoutTrailingSlash) {
+    return "";
+  }
+
+  if (!pathname.startsWith(BASE_PATH)) {
+    return "";
+  }
+
+  return trimPath(pathname.slice(BASE_PATH.length));
+}
+
+function trimPath(path: string): string {
+  return path.replace(/^\/+|\/+$/g, "");
 }
 
 function createRenderer(kind: RendererKind): BenchmarkRenderer {

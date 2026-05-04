@@ -32,6 +32,12 @@ Open:
 
 [http://localhost:5173](http://localhost:5173)
 
+## Deploy
+
+GitHub Pages deploys from `main` with GitHub Actions:
+
+[https://luciomartinez.github.io/web-rendering-lab/](https://luciomartinez.github.io/web-rendering-lab/)
+
 ## Check
 
 ```sh
