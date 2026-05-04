@@ -33,18 +33,22 @@ test("root route opens DOM with the safe default", async ({ page }) => {
   await expect(page.getByTestId("point-count")).toHaveValue("1000");
 });
 
-test("DOM starts with safe point-count options", async ({ page }) => {
+test("point count menu uses the standard benchmark intervals", async ({ page }) => {
+  await page.goto("/webgl");
+
+  await expectPointIntervals(page);
+  await expect(page.locator("#point-count option[value='5000']")).toHaveCount(0);
+  await expect(page.locator("#point-count option[value='25000']")).toHaveCount(0);
+  await expect(page.locator("#point-count option[value='50000']")).toHaveCount(0);
+  await expect(page.locator("#point-count option[value='250000']")).toHaveCount(0);
+  await expect(page.locator("#point-count option[value='500000']")).toHaveCount(0);
+});
+
+test("DOM opens at 1k while sharing the same intervals", async ({ page }) => {
   await page.goto("/dom");
 
   await expect(page.getByTestId("point-count")).toHaveValue("1000");
-  await expect(page.locator("#point-count option[value='100000']")).toHaveCount(0);
-  await expect(page.locator("#point-count option[value='1000000']")).toHaveCount(0);
-});
-
-test("accelerated renderers expose the 1M benchmark option", async ({ page }) => {
-  await page.goto("/webgl");
-
-  await expect(page.locator("#point-count option[value='1000000']")).toHaveCount(1);
+  await expectPointIntervals(page);
 });
 
 test("switching from an accelerated renderer to DOM clamps before mounting DOM", async ({ page }) => {
@@ -104,6 +108,13 @@ function labelForRoute(route: (typeof ROUTES)[number]): string {
     case "webgpu":
       return "WebGPU";
   }
+}
+
+async function expectPointIntervals(page: import("@playwright/test").Page): Promise<void> {
+  const optionValues = await page.locator("#point-count option").evaluateAll((options) =>
+    options.map((option) => (option as HTMLOptionElement).value)
+  );
+  expect(optionValues).toEqual(["1000", "10000", "100000", "1000000"]);
 }
 
 function hasNonBlankPixels(buffer: Buffer): boolean {

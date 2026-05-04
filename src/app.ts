@@ -23,8 +23,7 @@ const ROUTE_LABELS: Record<RendererKind, string> = {
 };
 
 const DOM_DEFAULT_POINT_COUNT = 1_000;
-const DOM_POINT_COUNT_OPTIONS = [1_000, 5_000, 10_000, 25_000];
-const ACCELERATED_POINT_COUNT_OPTIONS = [1_000, 10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000];
+const POINT_COUNT_OPTIONS = [1_000, 10_000, 100_000, 1_000_000];
 
 export class RenderingLabApp {
   private root: HTMLElement;
@@ -493,8 +492,8 @@ export class RenderingLabApp {
     return kind === "dom" ? DOM_DEFAULT_POINT_COUNT : DEFAULT_POINT_COUNT;
   }
 
-  private getPointCountOptions(kind: RendererKind): number[] {
-    return kind === "dom" ? DOM_POINT_COUNT_OPTIONS : ACCELERATED_POINT_COUNT_OPTIONS;
+  private getPointCountOptions(_kind: RendererKind): number[] {
+    return POINT_COUNT_OPTIONS;
   }
 
   private updatePointCountSelect(kind: RendererKind): void {
