@@ -4,13 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
-    "postbuild": "node scripts/copy-404.mjs",
-    "build:pages": "tsc --noEmit && vite build --mode github-pages && node scripts/copy-404.mjs",
-    "preview": "vite preview --host 0.0.0.0",
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "build:pages": "npm run typecheck && vite build --mode github-pages",
+    "postbuild:pages": "node scripts/copy-404.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run && playwright test",
+    "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test"
   },
